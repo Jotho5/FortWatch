@@ -1,4 +1,4 @@
-# 🛡️ Security-Focused System Monitoring PowerShell Script
+# 🛡️ Security-Focused System Monitoring Script
 
 Welcome to the PowerShell Script for Security-Focused System Monitoring! This script is intended to assist you in monitoring and maintaining the safety, security, and optimal condition of your Windows system. Critical system metrics, such as disk usage, network activity, and security events, are automatically monitored while it keeps an eye out for any covert unauthorized file changes. It will also notify you if your system patches are getting behind schedule. 📈🚨
 
