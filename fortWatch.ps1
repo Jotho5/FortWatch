@@ -4,7 +4,7 @@ $AlertEmail = "admin@example.com"
 $LogPath = "C:\Logs\SecurityMonitoring"
 $HashBaselineFile = "$LogPath\HashBaseline.txt"
 $ReportFile = "$LogPath\SecurityReport.txt"
-$NetworkInterfaces = Get-NetAdapter | Select-Object -ExpandProperty Name
+$NetworkInterfaces = Get-NetAdapter | ForEach-Object { $_.Name }
 
 # Ensure log directory exists
 if (-not (Test-Path $LogPath)) {
@@ -27,7 +27,7 @@ function Check-FileIntegrity {
         $currentHashes += "$($hash.Hash) $($hash.Path)"
     }
     $baselineHashes = Get-Content $HashBaselineFile
-    if ($currentHashes -ne $baselineHashes) {
+    if ($currentHashes -join "`n" -ne $baselineHashes -join "`n") {
         $message = "Unauthorized file changes detected!"
         Write-Output $message
         Send-Alert $message
@@ -38,8 +38,11 @@ function Check-FileIntegrity {
 function Monitor-DiskUsage {
     $disks = Get-PSDrive -PSProvider FileSystem
     foreach ($disk in $disks) {
-        $usage = [math]::Round(($disk.Used / $disk.Used + $disk.Free) * 100, 2)
+        $usage = [math]::Round(($disk.Used / ($disk.Used + $disk.Free)) * 100, 2)
         "$($disk.Name): $usage% used" | Out-File -Append -FilePath $ReportFile
+        if ($usage -gt 90) {
+            Send-Alert "Disk usage critical: $($disk.Name) is $usage% full."
+        }
     }
 }
 
@@ -91,7 +94,10 @@ Check-FileIntegrity
 Check-PatchCompliance
 
 # Send the daily report
-Send-MailMessage -To $AlertEmail -From "monitoring@example.com" -Subject "Daily Security Report" -Body (Get-Content $ReportFile) -SmtpServer "smtp.example.com"
+$reportContent = Get-Content $ReportFile -Raw
+Send-MailMessage -To $AlertEmail -From "monitoring@example.com" -Subject "Daily Security Report" -Body $reportContent -SmtpServer "smtp.example.com"
 
 # Clean up the report file for the next run
-Clear-Content $ReportFile
+if (Test-Path $ReportFile) {
+    Clear-Content $ReportFile
+}
